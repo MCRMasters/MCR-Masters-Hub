@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}====================================================${NC}"
-echo -e "${GREEN}pyenv와 poetry 설치 스크립트${NC}"
+echo -e "${GREEN}pyenv, poetry, Docker 설치 스크립트${NC}"
 echo -e "${BLUE}====================================================${NC}"
 
 # OS 확인
@@ -21,7 +21,14 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     OS_TYPE="macos"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo -e "${YELLOW}Linux가 감지되었습니다.${NC}"
-    OS_TYPE="linux"
+    
+    # WSL 확인
+    if grep -q Microsoft /proc/version; then
+        echo -e "${YELLOW}Windows Subsystem for Linux (WSL)이 감지되었습니다.${NC}"
+        OS_TYPE="wsl"
+    else
+        OS_TYPE="linux"
+    fi
 else
     echo -e "${YELLOW}지원되지 않는 OS입니다. 이 스크립트는 macOS와 Linux에서만 실행됩니다.${NC}"
     exit 1
@@ -37,13 +44,35 @@ if [[ "$OS_TYPE" == "macos" ]]; then
     fi
     
     brew update
-    brew install curl git
+    brew install curl git docker
 elif [[ "$OS_TYPE" == "linux" ]]; then
     sudo apt-get update
-    sudo apt-get install -y curl git python3 python3-pip
+    sudo apt-get install -y curl git python3 python3-pip apt-transport-https ca-certificates gnupg lsb-release
+
+    # Docker GPG 키 추가
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+    # Docker 리포지토리 설정
+    echo \
+      "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Docker 엔진 설치
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+elif [[ "$OS_TYPE" == "wsl" ]]; then
+    echo -e "\n${GREEN}WSL용 Docker 설치를 준비합니다...${NC}"
+    
+    # Docker Desktop for Windows에서 WSL로 접근하는 경우
+    echo -e "${YELLOW}WSL에서는 Docker Desktop for Windows를 사용하는 것을 권장합니다.${NC}"
+    echo -e "${YELLOW}먼저 Windows에 Docker Desktop을 설치하고, WSL 통합을 활성화해주세요.${NC}"
+    
+    # Docker CLI 설치
+    sudo apt-get update
+    sudo apt-get install -y docker.io docker-compose
 fi
 
-# 쉘 설정 추가
+# pyenv 설치
 echo -e "\n${GREEN}pyenv를 설치합니다...${NC}"
 if ! command -v pyenv &> /dev/null; then
     curl https://pyenv.run | bash
@@ -91,9 +120,28 @@ else
     poetry self update
 fi
 
+# Docker 권한 설정 (Linux의 경우)
+if [[ "$OS_TYPE" == "linux" ]]; then
+    echo -e "\n${GREEN}Docker 권한을 설정합니다...${NC}"
+    sudo usermod -aG docker $USER
+    
+    echo -e "\n${YELLOW}Docker 그룹에 사용자를 추가했습니다.${NC}"
+    echo -e "${YELLOW}변경사항을 적용하려면 로그아웃 후 다시 로그인해주세요.${NC}"
+fi
+
+# WSL의 경우 추가 가이드
+if [[ "$OS_TYPE" == "wsl" ]]; then
+    echo -e "\n${YELLOW}WSL에서 Docker 사용 시 주의사항:${NC}"
+    echo -e "1. ${BLUE}Windows의 Docker Desktop에서 WSL 통합 옵션을 반드시 활성화해주세요.${NC}"
+    echo -e "2. ${BLUE}Windows PowerShell 또는 명령 프롬프트에서 다음 명령어를 실행해주세요:${NC}"
+    echo -e "   ${GREEN}wsl --update${NC}"
+    echo -e "3. ${BLUE}Docker Desktop의 WSL 통합 설정에서 현재 WSL 배포판을 선택해주세요.${NC}"
+fi
+
 # 완료 메시지
 echo -e "\n${BLUE}====================================================${NC}"
 echo -e "${GREEN}개발 환경 설정이 완료되었습니다!${NC}"
 echo -e "${YELLOW}pyenv 버전: $(pyenv --version)${NC}"
 echo -e "${YELLOW}Poetry 버전: $(poetry --version)${NC}"
+echo -e "${YELLOW}Docker 버전: $(docker --version)${NC}"
 echo -e "${BLUE}====================================================${NC}"
