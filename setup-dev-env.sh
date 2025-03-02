@@ -2,6 +2,9 @@
 
 set -e
 
+# 현재 쉘 확인
+CURRENT_SHELL=$(basename "$SHELL")
+
 # 색상 정의
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -40,24 +43,21 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     sudo apt-get install -y curl git python3 python3-pip
 fi
 
-# 사용자의 쉘 확인
-SHELL_NAME=$(basename "$SHELL")
-
-# pyenv 설치
+# 쉘 설정 추가
 echo -e "\n${GREEN}pyenv를 설치합니다...${NC}"
 if ! command -v pyenv &> /dev/null; then
     curl https://pyenv.run | bash
     
-    # 쉘 설정 추가
+    # 쉘 설정 업데이트
     echo -e "\n${YELLOW}쉘 설정을 업데이트합니다. 환경 변수를 설정합니다...${NC}"
     
-    if [[ "$SHELL_NAME" == "bash" ]]; then
+    if [[ "$CURRENT_SHELL" == "bash" ]]; then
         echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
         echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
         echo 'eval "$(pyenv init --path)"' >> ~/.bashrc
         echo 'eval "$(pyenv init -)"' >> ~/.bashrc
         source ~/.bashrc
-    elif [[ "$SHELL_NAME" == "zsh" ]]; then
+    elif [[ "$CURRENT_SHELL" == "zsh" ]]; then
         echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
         echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
         echo 'eval "$(pyenv init --path)"' >> ~/.zshrc
@@ -76,10 +76,10 @@ if ! command -v poetry &> /dev/null; then
     curl -sSL https://install.python-poetry.org | python3 -
     
     # 쉘 설정 추가
-    if [[ "$SHELL_NAME" == "bash" ]]; then
+    if [[ "$CURRENT_SHELL" == "bash" ]]; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
         source ~/.bashrc
-    elif [[ "$SHELL_NAME" == "zsh" ]]; then
+    elif [[ "$CURRENT_SHELL" == "zsh" ]]; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
         source ~/.zshrc
     fi
