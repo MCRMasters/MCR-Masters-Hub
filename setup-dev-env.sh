@@ -21,7 +21,14 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     OS_TYPE="macos"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo -e "${YELLOW}Linux가 감지되었습니다.${NC}"
-    OS_TYPE="linux"
+    
+    # WSL 확인
+    if grep -q Microsoft /proc/version; then
+        echo -e "${YELLOW}Windows Subsystem for Linux (WSL)이 감지되었습니다.${NC}"
+        OS_TYPE="wsl"
+    else
+        OS_TYPE="linux"
+    fi
 else
     echo -e "${YELLOW}지원되지 않는 OS입니다. 이 스크립트는 macOS와 Linux에서만 실행됩니다.${NC}"
     exit 1
@@ -42,7 +49,6 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     sudo apt-get update
     sudo apt-get install -y curl git python3 python3-pip apt-transport-https ca-certificates gnupg lsb-release
 
-    # Docker 설치 (Ubuntu/Debian 기준)
     # Docker GPG 키 추가
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
@@ -54,6 +60,16 @@ elif [[ "$OS_TYPE" == "linux" ]]; then
     # Docker 엔진 설치
     sudo apt-get update
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+elif [[ "$OS_TYPE" == "wsl" ]]; then
+    echo -e "\n${GREEN}WSL용 Docker 설치를 준비합니다...${NC}"
+    
+    # Docker Desktop for Windows에서 WSL로 접근하는 경우
+    echo -e "${YELLOW}WSL에서는 Docker Desktop for Windows를 사용하는 것을 권장합니다.${NC}"
+    echo -e "${YELLOW}먼저 Windows에 Docker Desktop을 설치하고, WSL 통합을 활성화해주세요.${NC}"
+    
+    # Docker CLI 설치
+    sudo apt-get update
+    sudo apt-get install -y docker.io docker-compose
 fi
 
 # pyenv 설치
@@ -108,7 +124,18 @@ fi
 if [[ "$OS_TYPE" == "linux" ]]; then
     echo -e "\n${GREEN}Docker 권한을 설정합니다...${NC}"
     sudo usermod -aG docker $USER
-    newgrp docker
+    
+    echo -e "\n${YELLOW}Docker 그룹에 사용자를 추가했습니다.${NC}"
+    echo -e "${YELLOW}변경사항을 적용하려면 로그아웃 후 다시 로그인해주세요.${NC}"
+fi
+
+# WSL의 경우 추가 가이드
+if [[ "$OS_TYPE" == "wsl" ]]; then
+    echo -e "\n${YELLOW}WSL에서 Docker 사용 시 주의사항:${NC}"
+    echo -e "1. ${BLUE}Windows의 Docker Desktop에서 WSL 통합 옵션을 반드시 활성화해주세요.${NC}"
+    echo -e "2. ${BLUE}Windows PowerShell 또는 명령 프롬프트에서 다음 명령어를 실행해주세요:${NC}"
+    echo -e "   ${GREEN}wsl --update${NC}"
+    echo -e "3. ${BLUE}Docker Desktop의 WSL 통합 설정에서 현재 WSL 배포판을 선택해주세요.${NC}"
 fi
 
 # 완료 메시지
