@@ -11,4 +11,3 @@ chmod +x setup-dev-env.sh
 ```bash
 ./setup-dev-env.sh
 ```
-
