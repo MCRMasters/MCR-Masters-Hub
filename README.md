@@ -1,8 +1,13 @@
-![Auto Assign](https://github.com/MCRMasters/demo-repository/actions/workflows/auto-assign.yml/badge.svg)
+# MCR-Masters-Hub
+[Wiki](https://github.com/MCRMasters/MCR-Masters-Hub/wiki)
 
-![Proof HTML](https://github.com/MCRMasters/demo-repository/actions/workflows/proof-html.yml/badge.svg)
+## 개발 환경 설정
+### 실행권한 부여
+```bash
+chmod +x setup-dev-env.sh
+```
 
-# Welcome to your organization's demo respository
-This code repository (or "repo") is designed to demonstrate the best GitHub has to offer with the least amount of noise.
-
-The repo includes an `index.html` file (so it can render a web page), two GitHub Actions workflows, and a CSS stylesheet dependency.
+### 스크립트 실행
+```bash
+./setup-dev-env.sh
+```
