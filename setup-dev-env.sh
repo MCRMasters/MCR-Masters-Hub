@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}====================================================${NC}"
-echo -e "${GREEN}pyenv와 poetry 설치 스크립트${NC}"
+echo -e "${GREEN}pyenv, poetry, Docker 설치 스크립트${NC}"
 echo -e "${BLUE}====================================================${NC}"
 
 # OS 확인
@@ -37,13 +37,26 @@ if [[ "$OS_TYPE" == "macos" ]]; then
     fi
     
     brew update
-    brew install curl git
+    brew install curl git docker
 elif [[ "$OS_TYPE" == "linux" ]]; then
     sudo apt-get update
-    sudo apt-get install -y curl git python3 python3-pip
+    sudo apt-get install -y curl git python3 python3-pip apt-transport-https ca-certificates gnupg lsb-release
+
+    # Docker 설치 (Ubuntu/Debian 기준)
+    # Docker GPG 키 추가
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+    # Docker 리포지토리 설정
+    echo \
+      "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Docker 엔진 설치
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 fi
 
-# 쉘 설정 추가
+# pyenv 설치
 echo -e "\n${GREEN}pyenv를 설치합니다...${NC}"
 if ! command -v pyenv &> /dev/null; then
     curl https://pyenv.run | bash
@@ -91,9 +104,17 @@ else
     poetry self update
 fi
 
+# Docker 권한 설정 (Linux의 경우)
+if [[ "$OS_TYPE" == "linux" ]]; then
+    echo -e "\n${GREEN}Docker 권한을 설정합니다...${NC}"
+    sudo usermod -aG docker $USER
+    newgrp docker
+fi
+
 # 완료 메시지
 echo -e "\n${BLUE}====================================================${NC}"
 echo -e "${GREEN}개발 환경 설정이 완료되었습니다!${NC}"
 echo -e "${YELLOW}pyenv 버전: $(pyenv --version)${NC}"
 echo -e "${YELLOW}Poetry 버전: $(poetry --version)${NC}"
+echo -e "${YELLOW}Docker 버전: $(docker --version)${NC}"
 echo -e "${BLUE}====================================================${NC}"
