@@ -45,41 +45,68 @@ if [[ "$OS_TYPE" == "macos" ]]; then
     
     brew update
     brew install curl git docker
-elif [[ "$OS_TYPE" == "linux" ]]; then
+
+    # macOS용 Python 의존성 패키지 설치
+    echo -e "\n${GREEN}macOS용 Python 빌드 의존성 패키지를 설치합니다...${NC}"
+    brew install openssl readline sqlite3 xz zlib tcl-tk
+elif [[ "$OS_TYPE" == "linux" ]] || [[ "$OS_TYPE" == "wsl" ]]; then
     sudo apt-get update
     sudo apt-get install -y curl git python3 python3-pip apt-transport-https ca-certificates gnupg lsb-release
 
-    # Docker GPG 키 추가
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    # Linux/WSL용 Python 빌드 의존성 패키지 설치
+    echo -e "\n${GREEN}Linux/WSL용 Python 빌드 의존성 패키지를 설치합니다...${NC}"
+    sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev \
+    libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils \
+    tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 
-    # Docker 리포지토리 설정
-    echo \
-      "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    # Ubuntu 특정 배포판 확인 (SSL 관련 추가 패키지)
+    if [[ -f /etc/lsb-release ]]; then
+        DISTRIB_ID=$(grep DISTRIB_ID /etc/lsb-release | cut -d= -f2)
+        DISTRIB_RELEASE=$(grep DISTRIB_RELEASE /etc/lsb-release | cut -d= -f2)
 
-    # Docker 엔진 설치
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-elif [[ "$OS_TYPE" == "wsl" ]]; then
-    echo -e "\n${GREEN}WSL용 Docker 설치를 준비합니다...${NC}"
-    
-    # Docker Desktop for Windows에서 WSL로 접근하는 경우
-    echo -e "${YELLOW}WSL에서는 Docker Desktop for Windows를 사용하는 것을 권장합니다.${NC}"
-    echo -e "${YELLOW}먼저 Windows에 Docker Desktop을 설치하고, WSL 통합을 활성화해주세요.${NC}"
-    
-    # Docker CLI 설치
-    sudo apt-get update
-    sudo apt-get install -y docker.io docker-compose
+        if [[ "$DISTRIB_ID" == "Ubuntu" ]]; then
+            echo -e "\n${GREEN}Ubuntu ${DISTRIB_RELEASE}를 위한 추가 패키지를 설치합니다...${NC}"
+            # Ubuntu 22.04+ 용 추가 패키지
+            if [[ $(echo "$DISTRIB_RELEASE >= 22.04" | bc) -eq 1 ]]; then
+                sudo apt-get install -y libgdbm-compat-dev uuid-dev
+            fi
+        fi
+    fi
+
+    # Docker 설치 (Linux의 경우)
+    if [[ "$OS_TYPE" == "linux" ]]; then
+        # Docker GPG 키 추가
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+        # Docker 리포지토리 설정
+        echo \
+          "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        # Docker 엔진 설치
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    elif [[ "$OS_TYPE" == "wsl" ]]; then
+        echo -e "\n${GREEN}WSL용 Docker 설치를 준비합니다...${NC}"
+
+        # Docker Desktop for Windows에서 WSL로 접근하는 경우
+        echo -e "${YELLOW}WSL에서는 Docker Desktop for Windows를 사용하는 것을 권장합니다.${NC}"
+        echo -e "${YELLOW}먼저 Windows에 Docker Desktop을 설치하고, WSL 통합을 활성화해주세요.${NC}"
+
+        # Docker CLI 설치
+        sudo apt-get update
+        sudo apt-get install -y docker.io docker-compose
+    fi
 fi
 
 # pyenv 설치
 echo -e "\n${GREEN}pyenv를 설치합니다...${NC}"
 if ! command -v pyenv &> /dev/null; then
     curl https://pyenv.run | bash
-    
+
     # 쉘 설정 업데이트
     echo -e "\n${YELLOW}쉘 설정을 업데이트합니다. 환경 변수를 설정합니다...${NC}"
-    
+
     if [[ "$CURRENT_SHELL" == "bash" ]]; then
         echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
         echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
@@ -103,7 +130,7 @@ fi
 echo -e "\n${GREEN}Poetry를 설치합니다...${NC}"
 if ! command -v poetry &> /dev/null; then
     curl -sSL https://install.python-poetry.org | python3 -
-    
+
     # 쉘 설정 추가
     if [[ "$CURRENT_SHELL" == "bash" ]]; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
@@ -112,7 +139,7 @@ if ! command -v poetry &> /dev/null; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
         source ~/.zshrc
     fi
-    
+
     # Poetry 설정
     poetry config virtualenvs.in-project true
 else
@@ -124,7 +151,7 @@ fi
 if [[ "$OS_TYPE" == "linux" ]]; then
     echo -e "\n${GREEN}Docker 권한을 설정합니다...${NC}"
     sudo usermod -aG docker $USER
-    
+
     echo -e "\n${YELLOW}Docker 그룹에 사용자를 추가했습니다.${NC}"
     echo -e "${YELLOW}변경사항을 적용하려면 로그아웃 후 다시 로그인해주세요.${NC}"
 fi
